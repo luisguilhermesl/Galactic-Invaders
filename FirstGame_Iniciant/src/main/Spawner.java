@@ -1,18 +1,15 @@
 package main;
 
-//48-----------------------------------------
 public class Spawner {
-	private int interval = 0;
-	private int maxInterval=80;
 	
-	public void tick() {
+	private int interval = 0;
+	private int maxInterval = 80;
+	
+	public void logic() {
 		interval++;
-		if(interval >= maxInterval ) {
+		if(interval >= maxInterval) {
 			Game.enemys.add(new Enemy());
-			interval=0;
+			interval = 0;
 		}
 	}
-	
-//---------------------------------------------
-
 }

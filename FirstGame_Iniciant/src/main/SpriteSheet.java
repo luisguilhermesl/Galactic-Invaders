@@ -1,29 +1,28 @@
 package main;
 
 import java.awt.image.BufferedImage;
+import java.io.File;
 import java.io.IOException;
 
 import javax.imageio.ImageIO;
 
-//53. Criei um FOLDER chamado 'res', coloquei a spritesheet.png lá e criei essa classe para manipular ela
-
 public class SpriteSheet {
+	
 	public BufferedImage image;
 	
-	//54 método para ler o texto e interpretar como imagem---------------------
-	public SpriteSheet(String path) { 
+	public SpriteSheet(String path) {
 		try {
-			image = ImageIO.read(getClass().getResource(path));
+			image = ImageIO.read(new File(path));
 		} catch (IOException e) {
-			// TODO Auto-generated catch block
+			System.out.println("Não foi possivel encontrar a imagem neste caminho:");
+			System.out.println(new File(path).getAbsolutePath());
 			e.printStackTrace();
 		}
-	}// 54------------------------------------------------------------------
-	
-	//55 vai construir sub'imagens a partir do meu png-----------------------------
-	public BufferedImage getSprite(int x, int y, int width, int height) {
-		return image.getSubimage(x,y,width,height);
 	}
-	//55 ------------------------------------------------------------------------------
+	
+	
+	public BufferedImage getSprite(int x, int y, int width, int height) {
+		return image.getSubimage(x, y, width, height);
+	}
 
 }
