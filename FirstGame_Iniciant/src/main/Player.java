@@ -16,7 +16,8 @@ public class Player {
 	
 	private int speed = 3;
 	
-	public boolean left, right;
+	public boolean left, right, up, down;
+	public int shipType = 0; // 0, 1, 2 — qual nave está em uso
 	
 	private BufferedImage sprite = Game.spriteSheet.getSprite(0, 0, 16, 16);
 	
@@ -24,6 +25,13 @@ public class Player {
 	public double life = 7;
 	public int score = 0;
 	public double maxLife = 7;
+
+	// POWER-UPS
+	public boolean shielded = false;
+	public int doubleShotTimer = 0;
+
+	// tipo de tiro definido pela nave escolhida (0=padrão, 1=pesado, 2=laser)
+	public int shotType = 0;
 	
 	//SISTEMA DE TEMPO
 	public int seconds = 0;
@@ -35,12 +43,24 @@ public class Player {
 	
 	
 	public void logic() {
-		if(left) { //ir para a esquerda
-			x-=speed; 
-		}else if(right) { //ir para a direita
-			x += speed;
-		}	
-		
+		if (shipType == 2) {
+			// nave 3: movimento livre nos 8 sentidos
+			if (left)  x -= speed;
+			if (right) x += speed;
+			if (up)    y -= speed;
+			if (down)  y += speed;
+
+			// limites da tela
+			if (x < 0) x = 0;
+			if (x + width  > Game.width  * Game.scale) x = Game.width  * Game.scale - width;
+			if (y < 0) y = 0;
+			if (y + height > Game.height * Game.scale) y = Game.height * Game.scale - height;
+		} else {
+			// naves 1 e 2: apenas horizontal
+			if (left)  x -= speed;
+			if (right) x += speed;
+		}
+
 		fire();
 		countTime();
 	}
@@ -60,12 +80,31 @@ public class Player {
 		
 	}
 
+	public void takeDamage(double amount) {
+		if (shielded) {
+			shielded = false;
+			return;
+		}
+		life -= amount;
+		if (life <= 0) {
+			Game.gameState = "GameOver";
+		}
+	}
+
 	public void fire() {
-		if(shoot) {
-			Game.bullets.add(new Bullets());
+		if (shoot) {
+			int cx = x + width / 2; // centro horizontal da nave
+			if (doubleShotTimer > 0) {
+				Game.bullets.add(new Bullets(cx - 16, y, shotType));
+				Game.bullets.add(new Bullets(cx + 8,  y, shotType));
+			} else {
+				Game.bullets.add(new Bullets(cx, y, shotType));
+			}
 			Sound.shoot.play();
 			shoot = false;
 		}
+
+		if (doubleShotTimer > 0) doubleShotTimer--;
 	}
 	
 	public void render(Graphics g) {
@@ -75,12 +114,14 @@ public class Player {
 	}
 	
 	public void setShipStyle(int type) {
-		if(type == 0) {
+		shipType = type;
+		shotType = type; // cada nave tem seu tipo de tiro
+		if (type == 0) {
 			sprite = Game.spriteSheet.getSprite(0, 0, 16, 16);
-		}else if(type == 1) {
+		} else if (type == 1) {
 			sprite = Game.spriteSheet.getSprite(16, 0, 16, 16);
-		}else if(type == 2) {
-			sprite = Game.spriteSheet.getSprite(32, 0, 16, 16);
-	}
+		} else if (type == 2) {
+			sprite = Game.spriteSheet.getSprite(0, 16, 16, 16); // Millennium Falcon
+		}
 	}
 }

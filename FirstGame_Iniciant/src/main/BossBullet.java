@@ -22,12 +22,8 @@ public class BossBullet {
 		Rectangle rPlayer = new Rectangle(Game.player.x, Game.player.y, Game.player.width, Game.player.height);
 		
 		if(rBullet.intersects(rPlayer)) {
-			Game.player.life--;
+			Game.player.takeDamage(1);
 			Game.bossBullets.remove(this);
-			
-			if(Game.player.life <= 0) {
-				Game.gameState = "GameOver";
-			}
 		}
 		
 	}

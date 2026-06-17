@@ -17,6 +17,7 @@ public class Game extends Canvas implements Runnable, KeyListener {
 
 	// altura, largura, escala
 	public static Menu menu;
+	public static Pause pause;
 	public static String gameState = "Menu";
 	public static int width = 120;
 	public static int height = 160;
@@ -37,7 +38,11 @@ public class Game extends Canvas implements Runnable, KeyListener {
 	public static ArrayList<Enemy> enemys;
 	public static ArrayList<Bullets> bullets;
 	public static ArrayList<Explosion> explosions;
+	public static ArrayList<PowerUp> powerUps;
+	public static ArrayList<Asteroid> asteroids;
 	public static boolean bossCompleted = false;
+	public static int wave = 1;
+	public static int nextBossScore = 15;
 
 	public Spawner spawner;
 	public static Random rand;
@@ -67,10 +72,13 @@ public class Game extends Canvas implements Runnable, KeyListener {
 		spawner = new Spawner();
 		bossBullets = new ArrayList<BossBullet>();
 		explosions = new ArrayList<Explosion>();
+		powerUps = new ArrayList<PowerUp>();
+		asteroids = new ArrayList<Asteroid>();
 
-		Sound.theme_music.play();
+		Sound.theme_music.loop();
 
 		menu = new Menu();
+		pause = new Pause();
 
 	}
 
@@ -111,19 +119,26 @@ public class Game extends Canvas implements Runnable, KeyListener {
 			player.logic();
 			// spawner.logic();
 
-			if (player.score >= 15 && !bossCompleted && boss == null) {
+			// boss só aparece quando a pontuação for atingida E não houver chuva de asteroides ativa
+			if (player.score >= nextBossScore && boss == null && !spawner.asteroidRainActive) {
 				boss = new Boss();
 			}
 
 			if (boss != null) {
 				boss.logic();
 				if (boss.life <= 0) {
-					bossCompleted = true;
+					wave++;
+					nextBossScore = player.score + 15;
 					boss = null;
 				}
 			} else {
 				spawner.logic();
 			}
+
+			for (int i = 0; i < asteroids.size(); i++) {
+				asteroids.get(i).logic();
+			}
+			asteroids.removeIf(a -> a.dead);
 
 			for (int i = 0; i < bullets.size(); i++) {
 				Bullets bu = bullets.get(i);
@@ -142,6 +157,10 @@ public class Game extends Canvas implements Runnable, KeyListener {
 			for (int i = 0; i < explosions.size(); i++) {
 				Explosion ex = explosions.get(i);
 				ex.logic();
+			}
+
+			for (int i = 0; i < powerUps.size(); i++) {
+				powerUps.get(i).logic();
 			}
 		} else if (gameState == "Menu")
 			menu.logic();
@@ -167,7 +186,7 @@ public class Game extends Canvas implements Runnable, KeyListener {
 
 		}
 
-		if (gameState == "Normal") {
+		if (gameState == "Normal" || gameState == "Paused") {
 			player.render(g);
 			// en.render(g);
 
@@ -183,6 +202,14 @@ public class Game extends Canvas implements Runnable, KeyListener {
 				explosions.get(i).render(g);
 			}
 
+			for (int i = 0; i < powerUps.size(); i++) {
+				powerUps.get(i).render(g);
+			}
+
+			for (int i = 0; i < asteroids.size(); i++) {
+				asteroids.get(i).render(g);
+			}
+
 			if (boss != null) {
 				boss.render(g);
 			}
@@ -193,8 +220,15 @@ public class Game extends Canvas implements Runnable, KeyListener {
 
 			ui.render(g);
 
+			// tela de pause por cima do jogo congelado
+			if (gameState == "Paused") {
+				pause.render(g);
+			}
+
 		} else if (gameState == "Menu") {
 			menu.render(g);
+		} else if (gameState == "GameOver") {
+			ui.render(g);
 		}
 
 		g = bs.getDrawGraphics();
@@ -237,8 +271,84 @@ public class Game extends Canvas implements Runnable, KeyListener {
 			} else if (e.getKeyCode() == KeyEvent.VK_D || e.getKeyCode() == KeyEvent.VK_RIGHT) {
 				player.right = true;
 			}
+			if (e.getKeyCode() == KeyEvent.VK_W || e.getKeyCode() == KeyEvent.VK_UP) {
+				player.up = true;
+			} else if (e.getKeyCode() == KeyEvent.VK_S || e.getKeyCode() == KeyEvent.VK_DOWN) {
+				player.down = true;
+			}
 			if (e.getKeyCode() == KeyEvent.VK_SPACE) {
 				player.shoot = true;
+			}
+			if (e.getKeyCode() == KeyEvent.VK_ESCAPE) {
+				// pausa o jogo
+				player.left = false;
+				player.right = false;
+				player.up   = false;
+				player.down = false;
+				pause.reset();
+				gameState = "Paused";
+			}
+		} else if (gameState == "Paused") {
+
+			int code = e.getKeyCode();
+			boolean down = (code == KeyEvent.VK_S || code == KeyEvent.VK_DOWN);
+			boolean up = (code == KeyEvent.VK_W || code == KeyEvent.VK_UP);
+			boolean confirm = (code == KeyEvent.VK_ENTER || code == KeyEvent.VK_SPACE);
+
+			if (!pause.inOptions) {
+				// MENU PRINCIPAL DO PAUSE
+				if (down) {
+					pause.currentOption++;
+					if (pause.currentOption > pause.mainMax)
+						pause.currentOption = 0;
+				}
+				if (up) {
+					pause.currentOption--;
+					if (pause.currentOption < 0)
+						pause.currentOption = pause.mainMax;
+				}
+				if (confirm) {
+					if (pause.currentOption == 0) {        // Voltar ao Jogo
+						gameState = "Normal";
+					} else if (pause.currentOption == 1) { // Opções
+						pause.inOptions = true;
+						pause.optionsOption = 0;
+					} else if (pause.currentOption == 2) { // Sair do Jogo
+						System.exit(0);
+					}
+				}
+				if (code == KeyEvent.VK_ESCAPE) { // Esc volta ao jogo
+					gameState = "Normal";
+				}
+			} else {
+				// SUBMENU DE OPÇÕES
+				if (down) {
+					pause.optionsOption++;
+					if (pause.optionsOption > pause.optionsMax)
+						pause.optionsOption = 0;
+				}
+				if (up) {
+					pause.optionsOption--;
+					if (pause.optionsOption < 0)
+						pause.optionsOption = pause.optionsMax;
+				}
+				if (confirm) {
+					if (pause.optionsOption == 0) {        // Desligar/Ligar Música
+						Sound.toggleMusic();
+					} else if (pause.optionsOption == 1) { // Desligar/Ligar Efeitos
+						Sound.toggleEffects();
+					} else if (pause.optionsOption == 2) { // Voltar
+						pause.inOptions = false;
+					}
+				}
+				if (code == KeyEvent.VK_ESCAPE) { // Esc volta ao menu de pause
+					pause.inOptions = false;
+				}
+			}
+		} else if (gameState == "GameOver") {
+			if (e.getKeyCode() == KeyEvent.VK_SPACE || e.getKeyCode() == KeyEvent.VK_ENTER) {
+				gameState = "Menu";
+				menu.isShipSelection = false;
 			}
 		} else if (gameState == "Menu") {
 
@@ -248,17 +358,38 @@ public class Game extends Canvas implements Runnable, KeyListener {
 				}
 			} else {
 				
-				// RESOLVER: SELEÇÃO PARA CIMA NÃO FUNCIONA
-				if (e.getKeyCode() == KeyEvent.VK_S|| e.getKeyCode() == KeyEvent.VK_DOWN) {
-					menu.currentOption++;
-					if (menu.currentOption > menu.maxOption)
-						menu.currentOption = 0;
-				}if (e.getKeyCode() == KeyEvent.VK_W|| e.getKeyCode() == KeyEvent.VK_UP) {
+				if (e.getKeyCode() == KeyEvent.VK_S || e.getKeyCode() == KeyEvent.VK_DOWN) {
 					menu.currentOption++;
 					if (menu.currentOption > menu.maxOption)
 						menu.currentOption = 0;
 				}
+				if (e.getKeyCode() == KeyEvent.VK_W || e.getKeyCode() == KeyEvent.VK_UP) {
+					menu.currentOption--;
+					if (menu.currentOption < 0)
+						menu.currentOption = menu.maxOption;
+				}
 				if (e.getKeyCode() == KeyEvent.VK_SPACE || e.getKeyCode() == KeyEvent.VK_ENTER) {
+					player.setShipStyle(menu.currentOption);
+					wave = 1;
+					nextBossScore = 15;
+					boss = null;
+					enemys.clear();
+					bullets.clear();
+					bossBullets.clear();
+					powerUps.clear();
+					asteroids.clear();
+					spawner.reset();
+					player.life = player.maxLife;
+					player.score = 0;
+					player.shielded = false;
+					player.doubleShotTimer = 0;
+					player.shotType = menu.currentOption;
+					player.left = false;
+					player.right = false;
+					player.up   = false;
+					player.down = false;
+					player.x = (Game.width * Game.scale) / 2;
+					player.y = Game.height * Game.scale - player.height;
 					gameState = "Normal";
 				}
 			}
@@ -272,7 +403,11 @@ public class Game extends Canvas implements Runnable, KeyListener {
 		} else if (e.getKeyCode() == KeyEvent.VK_D || e.getKeyCode() == KeyEvent.VK_RIGHT) {
 			player.right = false;
 		}
-
+		if (e.getKeyCode() == KeyEvent.VK_W || e.getKeyCode() == KeyEvent.VK_UP) {
+			player.up = false;
+		} else if (e.getKeyCode() == KeyEvent.VK_S || e.getKeyCode() == KeyEvent.VK_DOWN) {
+			player.down = false;
+		}
 	}
 
 }

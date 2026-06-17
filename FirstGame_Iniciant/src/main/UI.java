@@ -43,9 +43,12 @@ public class UI {
 			
 			g.setColor(Color.yellow);
 			g.setFont(new Font("Arial", Font.BOLD,18));
-			g.drawString("SCORE " + Game.player.score,(Game.width * Game.scale) / 2 -40, (Game.height * Game.scale) / 2 + 20);
-			
-			
+			g.drawString("SCORE " + Game.player.score,(Game.width * Game.scale) / 2 - 40, (Game.height * Game.scale) / 2 + 20);
+
+			g.setColor(Color.lightGray);
+			g.setFont(new Font("Arial", Font.PLAIN, 12));
+			g.drawString("ENTER para voltar", (Game.width * Game.scale) / 2 - 52, (Game.height * Game.scale) / 2 + 50);
+
 		}
 	}
 
